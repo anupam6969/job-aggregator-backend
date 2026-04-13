@@ -4,10 +4,11 @@ import {
   jobs,
   getLatestJobs,
 } from "../controllers/jobController.js";
+import { checkBan } from "../middlewares/checkBan.js";
 
 const router = express.Router();
 
-router.get("/", protect, jobs);
-router.get("/latest", protect, getLatestJobs);
+router.get("/", protect, checkBan, jobs);
+router.get("/latest", protect, checkBan, getLatestJobs);
 
 export default router;

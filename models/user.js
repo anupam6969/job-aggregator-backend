@@ -24,7 +24,16 @@ const userSchema = new mongoose.Schema(
       required: true,
       minlength: 8,
       select: false //  hide password by default
-    }
+    },
+     role: {
+    type: String,
+    enum: ["user", "admin"],
+    default: "user"
+  },
+   banned: {
+    type: Boolean,
+    default: false
+  }
   },
   { timestamps: true }
 );

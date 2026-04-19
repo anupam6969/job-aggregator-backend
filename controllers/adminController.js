@@ -1,85 +1,3 @@
-// // controllers/adminController.js
-// import Job from "../models/job.js";
-// import User from "../models/user.js";
-// import { fetchAllJobs } from "../services/scraper.js";
-
-
-// // Get Dashboard Stats
-// export const getStats = async (req, res) => {
-//   try {
-//     const totalJobs = await Job.countDocuments();
-//     const totalUsers = await User.countDocuments();
-
-//     const jobsBySource = await Job.aggregate([
-//       { $group: { _id: "$source", count: { $sum: 1 } } }
-//     ]);
-
-//     res.json({
-//       totalJobs,
-//       totalUsers,
-//       jobsBySource
-//     });
-//   } catch (err) {
-//     res.status(500).json({ error: err.message });
-//   }
-// };
-
-
-// // Get All Jobs
-// export const getAllJobs = async (req, res) => {
-//   try {
-//     const jobs = await Job.find().sort({ createdAt: -1 });
-//     res.json(jobs);
-//   } catch (err) {
-//     res.status(500).json({ error: err.message });
-//   }
-// };
-
-
-// // Delete Job
-// export const deleteJob = async (req, res) => {
-//   try {
-//     await Job.findByIdAndDelete(req.params.id);
-//     res.json({ message: "Job deleted successfully" });
-//   } catch (err) {
-//     res.status(500).json({ error: err.message });
-//   }
-// };
-
-
-// // Get All Users
-// export const getAllUsers = async (req, res) => {
-//   try {
-//     const users = await User.find().select("-password");
-//     res.json(users);
-//   } catch (err) {
-//     res.status(500).json({ error: err.message });
-//   }
-// };
-
-
-// //  Ban User
-// export const banUser = async (req, res) => {
-//   try {
-//     await User.findByIdAndUpdate(req.params.id, { banned: true });
-//     res.json({ message: "User banned" });
-//   } catch (err) {
-//     res.status(500).json({ error: err.message });
-//   }
-// };
-
-
-// // Trigger Job Fetch
-// export const fetchJobsManually = async (req, res) => {
-//   try {
-//     await fetchAllJobs();
-//     res.json({ message: "Jobs fetched successfully" });
-//   } catch (err) {
-//     res.status(500).json({ error: err.message });
-//   }
-// };
-
-
 // controllers/adminController.js
 
 import mongoose from "mongoose";
@@ -89,6 +7,20 @@ import { fetchAllJobs } from "../services/scraper.js";
 
 // 🔒 Helper: Validate ObjectId
 const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
+const escapeRegex = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const parsePositiveInt = (value, fallback, max) => {
+  const parsed = Number.parseInt(value, 10);
+
+  if (Number.isNaN(parsed) || parsed < 1) {
+    return fallback;
+  }
+
+  if (typeof max === "number") {
+    return Math.min(parsed, max);
+  }
+
+  return parsed;
+};
 
 // Scraper Lock
 let isFetching = false;
@@ -135,16 +67,18 @@ export const getAllJobs = async (req, res) => {
   try {
     let { page = 1, limit = 10, search = "", source } = req.query;
 
-    page = Number(page);
-    limit = Number(limit);
+    page = parsePositiveInt(page, 1);
+    limit = parsePositiveInt(limit, 10, 50);
 
     const query = {};
 
     // Search
     if (search) {
+      const safeSearch = escapeRegex(search);
+
       query.$or = [
-        { title: { $regex: search, $options: "i" } },
-        { company: { $regex: search, $options: "i" } }
+        { title: { $regex: safeSearch, $options: "i" } },
+        { company: { $regex: safeSearch, $options: "i" } }
       ];
     }
 
@@ -268,8 +202,14 @@ export const fetchJobsManually = async (req, res) => {
     isFetching = true;
 
     fetchAllJobs()
-      .then(() => console.log("Jobs fetched successfully"))
-      .catch(err => console.error("Scraper error:", err))
+      .then((results) => console.log("Jobs fetched successfully", results))
+      .catch((err) => {
+        console.error("Scraper error:", err.message);
+
+        if (err.results) {
+          console.error("Scraper details:", err.results);
+        }
+      })
       .finally(() => {
         isFetching = false;
       });

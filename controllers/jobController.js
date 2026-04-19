@@ -1,13 +1,27 @@
 import Job from "../models/job.js";
 
+const parsePositiveInt = (value, fallback, max) => {
+  const parsed = Number.parseInt(value, 10);
+
+  if (Number.isNaN(parsed) || parsed < 1) {
+    return fallback;
+  }
+
+  if (typeof max === "number") {
+    return Math.min(parsed, max);
+  }
+
+  return parsed;
+};
+
 // Get all jobs (with filters + pagination)
 export const jobs = async (req, res) => {
   try {
     let { title, location, page = 1, limit = 20 } = req.query;
 
     // ✅ Sanitize inputs
-    page = Math.max(1, parseInt(page));
-    limit = Math.min(50, Math.max(1, parseInt(limit))); // max 50
+    page = parsePositiveInt(page, 1);
+    limit = parsePositiveInt(limit, 20, 50);
 
     const filter = {};
 

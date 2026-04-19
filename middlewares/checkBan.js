@@ -1,20 +1,10 @@
-import User from "../models/user.js";
-
 export const checkBan = async (req, res, next) => {
   try {
-    const userId = req.user?.id;
-
-    if (!userId) {
+    if (!req.user) {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    const user = await User.findById(userId).select("banned");
-
-    if (!user) {
-      return res.status(401).json({ error: "User not found" });
-    }
-
-    if (user.banned) {
+    if (req.user.banned) {
       return res.status(403).json({ error: "You are banned" });
     }
 

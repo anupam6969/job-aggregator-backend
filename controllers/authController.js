@@ -22,16 +22,24 @@ export const signup = async (req, res) => {
     const { name, email, password } = req.body;
 
     // Empty check
-    if (!name || !email || !password) {
+    if (
+      typeof name !== "string" ||
+      typeof email !== "string" ||
+      typeof password !== "string" ||
+      !name.trim() ||
+      !email.trim() ||
+      password.length === 0
+    ) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
+    const normalizedName = name.trim();
+    const normalizedEmail = email.trim().toLowerCase();
+
     // Email validation
-    if (!validator.isEmail(email)) {
+    if (!validator.isEmail(normalizedEmail)) {
       return res.status(400).json({ message: "Invalid email format" });
     }
-
-    const normalizedEmail = email.toLowerCase();
 
     const userExists = await User.findOne({ email: normalizedEmail });
     if (userExists) {
@@ -49,7 +57,7 @@ export const signup = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 12);
 
     const user = await User.create({
-      name,
+      name: normalizedName,
       email: normalizedEmail,
       password: hashedPassword,
     });
@@ -77,12 +85,25 @@ export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    const normalizedEmail = email.toLowerCase();
+    if (
+      typeof email !== "string" ||
+      typeof password !== "string" ||
+      !email.trim() ||
+      password.length === 0
+    ) {
+      return res.status(400).json({ message: "Email and password are required" });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
 
     const user = await User.findOne({ email: normalizedEmail }).select("+password");
 
     if (!user) {
       return res.status(400).json({ message: "Invalid credentials" });
+    }
+
+    if (user.banned) {
+      return res.status(403).json({ message: "Account is banned" });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);

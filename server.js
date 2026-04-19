@@ -9,6 +9,7 @@ import authRoutes from "./routes/authRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import { startCronJobs } from "./services/cronService.js";
 import helmet from "helmet";
+import subscriptionRoutes from "./routes/subscriptionRoutes.js";
 
 
 
@@ -21,7 +22,7 @@ app.use(helmet());
 
 // CORS restriction
 app.use(cors({
-  origin: "http://localhost:5173",
+  origin: "http://localhost:5174",
   credentials: true
 }));
 
@@ -32,6 +33,7 @@ app.use(express.json());
 app.use("/api/jobs", jobRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/subscription", subscriptionRoutes);
 
 // Server
 const PORT = process.env.PORT || 5000;
